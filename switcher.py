@@ -770,6 +770,7 @@ def discover_local_models(providers: list):
         "vllm": ("http://localhost:8000", "v1/models", False),
     }
     session = _get_session()
+    _local_lock = threading.Lock()
 
     def check_endpoint(name, base_url, check_path, is_ollama):
         key = f"{name}:local"
@@ -778,27 +779,27 @@ def discover_local_models(providers: list):
         try:
             r = session.get(f"{base_url}/{check_path}", timeout=1.5)
             if r.status_code == 200:
-                if is_ollama:
-                    model_list = r.json().get("models", [])
-                    with lock:
-                        for m in model_list:
-                            mname = m.get("name", "unknown")
+                    if is_ollama:
+                        model_list = r.json().get("models", [])
+                        with _local_lock:
+                            for m in model_list:
+                                mname = m.get("name", "unknown")
+                                providers.append({
+                                    "key": f"ollama:{mname}", "provider": "ollama",
+                                    "model_id": mname, "deployment": mname,
+                                    "api_key": None, "endpoint": base_url,
+                                    "is_free": True, "source": "local", "is_active": False,
+                                })
+                        if model_list:
+                            log(f"Local: {len(model_list)} Ollama models found")
+                    else:
+                        with _local_lock:
                             providers.append({
-                                "key": f"ollama:{mname}", "provider": "ollama",
-                                "model_id": mname, "deployment": mname,
+                                "key": key, "provider": name,
+                                "model_id": "local", "deployment": "local",
                                 "api_key": None, "endpoint": base_url,
                                 "is_free": True, "source": "local", "is_active": False,
                             })
-                    if model_list:
-                        log(f"Local: {len(model_list)} Ollama models found")
-                else:
-                    with lock:
-                        providers.append({
-                            "key": key, "provider": name,
-                            "model_id": "local", "deployment": "local",
-                            "api_key": None, "endpoint": base_url,
-                            "is_free": True, "source": "local", "is_active": False,
-                        })
                     log(f"Local: {name} running at {base_url}")
         except:
             pass
@@ -843,6 +844,8 @@ def check_vllm(provider: dict) -> tuple[bool, str]:
 def detect_free_tier_gate(provider: dict, msg: str) -> bool:
     """Detect if a free model is behind a 'buy tokens' gate."""
     if not provider.get("is_free"):
+        return False
+    if not msg:
         return False
     return any(re.search(p, msg.lower()) for p in OPENROUTER_GATE_PATTERNS)
 
@@ -1018,7 +1021,7 @@ def discover():
 
     print(f"\n  Discovered {len(unique)} models across {len(set(p['provider'] for p in unique))} providers:\n")
     for p in unique:
-        active = "*" if p["is_active"] else " "
+        active = "*" if p.get("is_active") else " "
         free_tag = "[FREE]" if p["is_free"] else "[PAID]"
         spec, _ = get_model_specialty(p["model_id"])
         print(f"  {active} {free_tag:7s} {spec:10s} {p['key']:<45} from {p['source']}")
