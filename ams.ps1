@@ -1,3 +1,12 @@
+# =============================================================================
+#  Auto Model Switcher  ───  Convenience CLI (ams status|switch|watch|discover)
+#  Copyright (c) 2026 Farhan Dhrubo  <farhaiee123@gmail.com>
+#  License: GPL-3.0  —  https://github.com/farhanic017/auto-model-switcher
+#
+#  This program is free software. You may NOT remove this notice,
+#  re-distribute as your own work, or sell without attribution.
+# =============================================================================
+
 # Auto Model Switcher — CLI Wrapper
 # Add the auto-model-switcher dir to your PATH, then use:
 #   ams status

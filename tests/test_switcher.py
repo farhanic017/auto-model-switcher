@@ -1,3 +1,11 @@
+#  Auto Model Switcher  ───  Test Suite (26 tests)
+#  Copyright (c) 2026 Farhan Dhrubo  <farhaiee123@gmail.com>
+#  License: GPL-3.0  —  https://github.com/farhanic017/auto-model-switcher
+#
+#  This program is free software. You may NOT remove this notice,
+#  re-distribute as your own work, or sell without attribution.
+# =============================================================================
+
 """Auto Model Switcher v2 — Tests"""
 
 import json, sys, os, tempfile, types
@@ -131,16 +139,6 @@ def test_score_reasoning_boost():
     assert reasoning > base
 
 # ─── Health Checks ───────────────────────────────────────────────────────────
-
-def _mock_session(mock_get):
-    """Helper: set up a mock session for session-based check functions."""
-    from unittest.mock import MagicMock
-    from switcher import _get_session
-    s = MagicMock()
-    s.get = mock_get
-    s.post = mock_get
-    return s
-
 
 def test_check_openrouter_healthy():
     from unittest.mock import patch, MagicMock

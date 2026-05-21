@@ -1,81 +1,102 @@
-# Auto Model Switcher
+# Auto Model Switcher — AI Agent Install Skill
 
-Auto-discovers models from your CLI configs and environment variables. Builds a
-priority chain (free models first, paid fallbacks). When a model runs out of
+**Copyright (c) 2026 Farhan Dhrubo** — GPL-3.0 License
+
+Auto-discovers all AI models from CLI configs and environment variables. Builds
+a priority chain (free models first, paid fallbacks). When a model runs out of
 credits or hits rate limits, rotates to the next working model automatically.
 
-Works with: **OpenCode**, **Claude Code**, **Cursor**, and any CLI that
-reads a model config.
+Works with: **OpenCode**, **Claude Code**, **Cursor**, **Windsurf**, **Aider**,
+**Continue.dev**, and any CLI or agent that reads a model config.
 
-## Instant Install
+## Instant Install (for AI agents)
 
-Give this repo URL to any AI agent:
+When a user gives you this repo URL, do the following:
 
 ```
 https://github.com/farhanic017/auto-model-switcher
 ```
 
-The AI will:
-1. Clone the repo
-2. Run `install.py` to scan your configs
-3. Install hooks for automatic model switching
-4. Set up the watch daemon
+### Steps:
+
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/farhanic017/auto-model-switcher.git
+   cd auto-model-switcher
+   ```
+
+2. **Run the installer**
+   ```bash
+   python install.py
+   ```
+   This handles: dependency install, state directory, PowerShell profile hook,
+   PATH wrappers, startup task, desktop shortcuts, and WMI watchdog.
+
+3. **Verify installation**
+   ```bash
+   python switcher.py discover   # Should show all models
+   python switcher.py status     # Should show active model
+   python switcher.py switch     # Should pick best model
+   ```
+
+4. **Run tests (optional)**
+   ```bash
+   python tests/test_switcher.py
+   ```
 
 ## Manual Install
 
 ```powershell
 git clone https://github.com/farhanic017/auto-model-switcher.git
 cd auto-model-switcher
-python install.py
+python -m pip install requests
+python switcher.py discover
+python switcher.py switch
 ```
 
-## Usage
+## Commands
 
 ```
-python switcher.py status       # Show all models + their health
-python switcher.py switch       # Rotate to next working model
+python switcher.py status       # Show all models + health + ETAs
+python switcher.py switch       # Rotate to best working model
 python switcher.py watch        # Background daemon (auto-rotate)
 python switcher.py discover     # List all discovered models
 ```
 
-## How It Works
+Or after install: `ams status`, `ams switch`, `ams watch`, `ams discover`
 
-1. **Discovery**: Scans `opencode.jsonc`, `CLAUDE.md`, `.cursorrules`, and
-   environment variables for all configured providers and models.
+## Task-Aware Selection
 
-2. **Chain building**: Sorts models free-first. Google AI and OpenRouter
-   `:free` models get priority. Paid models (Azure OpenAI, OpenRouter paid)
-   are fallbacks.
-
-3. **Health checks**: For each provider, makes a lightweight API call:
-   - **OpenRouter**: `GET /api/v1/auth/key` to check credit balance
-   - **Google AI**: Minimal content generation to check quota
-   - **Azure OpenAI**: `GET /openai/models` to verify access
-
-4. **Rotation**: When a model fails (429 rate limit, 0 credits, 402 payment
-   required, 403 quota exceeded), it's marked as depleted with a 30-min
-   cooldown. The switcher moves to the next model and updates the CLI config.
-
-5. **Recovery**: After cooldown, depleted models are re-checked. If they
-   recover (e.g., OpenRouter credits refresh), they re-enter the pool.
-
-## Supported Providers
-
-| Provider | Detection | Health Check |
-|----------|-----------|-------------|
-| OpenRouter (free) | `:free` suffix | Credit balance API |
-| OpenRouter (paid) | no `:free` suffix | Credit balance API |
-| Google AI | provider name | Content generation |
-| Azure OpenAI | provider name | Models list API |
-| OpenAI | env var `OPENAI_API_KEY` | (minimal check) |
-| Anthropic | env var `ANTHROPIC_API_KEY` | (minimal check) |
-
-## Watch Mode
-
-Run in background for continuous monitoring:
-
-```powershell
-start /B python D:\open\ code\auto-model-switcher\switcher.py watch
+```
+python switcher.py switch --task coding      # Best coder
+python switcher.py switch --task reasoning   # Best reasoner
+python switcher.py switch --task chat        # Best chat model
+python switcher.py switch --task general     # Balanced pick
 ```
 
-Checks active model health every 2 minutes. Auto-switches on failure.
+## Architecture
+
+1. **Discovery**: Scans `opencode.jsonc`, `CLAUDE.md`, `.cursorrules`,
+   environment variables for ALL configured providers and models.
+
+2. **Chain building**: Free models first → paid fallbacks.
+   Google AI and OpenRouter `:free` models get priority.
+
+3. **Health checks** (parallel, <5s):
+   - **OpenRouter**: `GET /api/v1/auth/key` — checks credit balance
+   - **Google AI**: Minimal content generation — checks quota
+   - **Azure OpenAI**: `GET /openai/models` — verifies access
+   - **Local** (Ollama, LM Studio, vLLM): Quick endpoint checks
+
+4. **Scoring** (0-250): Base 100 + free bonus 50 + specialty up to 55 +
+   reliability bonus/penalty. Best score wins.
+
+5. **Rotation**: Failed models get cooldown (respects `Retry-After`). Config
+   auto-updated. Recovery ETA shown when all depleted.
+
+## Copyright Notice
+
+This project and all its files are Copyright (c) 2026 Farhan Dhrubo.
+Licensed under GPL-3.0. Every file contains an embedded copyright notice.
+Any use, distribution, or derivative work must include attribution to the
+original author: Farhan Dhrubo (github.com/farhanic017).

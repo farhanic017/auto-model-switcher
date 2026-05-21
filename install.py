@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+#  Auto Model Switcher  ───  Universal Installer
+#  Copyright (c) 2026 Farhan Dhrubo  <farhaiee123@gmail.com>
+#  License: GPL-3.0  —  https://github.com/farhanic017/auto-model-switcher
+#
+#  This program is free software. You may NOT remove this notice,
+#  re-distribute as your own work, or sell without attribution.
+# =============================================================================
+
 """
 Auto Model Switcher — Universal Installer
 
@@ -114,13 +122,15 @@ def install_path_wrappers():
     bat_dir = Path.home() / ".auto-model-switcher" / "bin"
     bat_dir.mkdir(parents=True, exist_ok=True)
 
-    # Supported CLIs
+    # Supported CLIs — add new ones here for auto-wrap. The system auto-wraps
+    # ANY unknown CLI found in PATH for future-proofing (see auto-switch.ps1).
     clis = {
         "opencode": r'C:\Users\Farhan\AppData\Local\Programs\@opencode-aidesktop\OpenCode.exe',
         "claude": "claude.exe",
         "cursor": "cursor.exe",
         "aider": "aider.exe",
         "windsurf": "windsurf.exe",
+        "continue": "continue.exe",
     }
 
     for cli_name, cli_path in clis.items():
