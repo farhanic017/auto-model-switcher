@@ -14,7 +14,7 @@ original command once.
 
 ## Live Demo
 
-This autoplaying 16:9 preview shows the full model fallback flow: active AI CLI
+This preview shows the full model fallback flow: active AI CLI
 session, quota failure detection, depleted-model cooldown, provider routing,
 task-aware scoring, learned usage preferences, config update, retry, and final
 verification without a manual restart.
