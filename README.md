@@ -84,7 +84,8 @@ when one fails - automatically rotates to the next working model.
 | `python switcher.py status` | Shows active model, health, depletion ETAs |
 | `python switcher.py switch --task coding` | Picks best model for a task (coding/chat/reasoning/general) |
 | `python switcher.py run opencode -- opencode ...` | Runs a CLI with failure detection, auto-switch, and one retry |
-| `python switcher.py watch` | Background daemon - checks every 2min, auto-rotates |
+| `python switcher.py doctor` | Runs local diagnostics for state, configs, wrappers, and CLIs |
+| `python switcher.py watch` | Background daemon — checks every 2min, auto-rotates |
 
 ### Or use the `ams` command after install:
 

@@ -253,6 +253,13 @@ def log(msg: str):
     clean = msg.encode("ascii", "replace").decode()
     print(f"[switcher] {clean}")
 
+
+def debug_log(msg: str):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(f"[{ts}] {msg}\n")
+
 # ─── State ───────────────────────────────────────────────────────────────────
 
 def _default_state() -> dict:
@@ -388,6 +395,7 @@ def record_model_usage(model_key: Optional[str], cli: str = "opencode",
         state["knowledge"]["cli_usage"][cli].get(model_key, 0)
     ) + 1
     save_state(state)
+    debug_log(f"Knowledge updated: {model_key} cli={cli} outcome={outcome} exit={exit_code}")
 
 
 def model_usage_bonus(model_key: str, cli: str = "opencode") -> int:
