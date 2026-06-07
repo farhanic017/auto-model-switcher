@@ -37,7 +37,7 @@ function Test-ModelHealth {
         $active = $state.active.opencode
         $depleted = $state.depleted
         if (-not $active) { return $false }
-        if ($depleted -and $depleted.$active) { return $false }
+        if ($depleted -and ($depleted | Get-Member -Name $active -MemberType NoteProperty)) { return $false }
         return $true
     } catch { return $false }
 }
@@ -92,8 +92,7 @@ foreach ($cliName in $__KNOWN_CLIS.Keys) {
         $__cliPath = __ams_resolve_cli $cliName
         $__wrapper = @"
 function global:$safeName {
-    python "$Switcher" switch --silent
-    & '$__cliPath' @args
+    python "$Switcher" run "$cliName" -- '$__cliPath' @args
 }
 "@
         Invoke-Expression $__wrapper
@@ -108,8 +107,7 @@ Get-Command -CommandType Application -ErrorAction SilentlyContinue | ForEach-Obj
         $__fullPath = $_.Source
         $__wrapper = @"
 function global:$name {
-    python "$Switcher" switch --silent
-    & '$__fullPath' @args
+    python "$Switcher" run "$name" -- '$__fullPath' @args
 }
 "@
         Invoke-Expression $__wrapper
@@ -120,9 +118,9 @@ function global:$name {
 if ($TargetCli) {
     $cliPath = __ams_resolve_cli $TargetCli
     if ($CliArgs) {
-        & $cliPath @CliArgs
+        python "$Switcher" run "$TargetCli" -- $cliPath @CliArgs
     } else {
-        & $cliPath
+        python "$Switcher" run "$TargetCli" -- $cliPath
     }
 }
 

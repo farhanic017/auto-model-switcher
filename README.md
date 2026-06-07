@@ -2,7 +2,7 @@
 
 **Never get blocked by "out of credits" again.** Auto-discovers all your AI
 models across providers, monitors their health in parallel (<5s), and seamlessly
-rotates when one runs out — all without you lifting a finger.
+rotates when one runs out - all without you lifting a finger.
 
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-green)]()
@@ -46,30 +46,33 @@ python switcher.py watch
 
 Scans your CLI configs (OpenCode, Claude Code, Cursor, Windsurf, Aider, etc.),
 discovers every model you have access to, checks their health in parallel, and
-when one fails — automatically rotates to the next working model.
+when one fails - automatically rotates to the next working model.
 
 **Free models get priority.** Paid models are fallbacks. Zero config needed.
 
 ---
 
-## Supported Providers (48+ models auto-discovered)
+## Supported Providers (all configured models auto-discovered)
 
 | Provider | Models | Detection | Priority |
 |----------|--------|-----------|----------|
-| Google AI (free) | 4 Gemini models | Config + env | 1st — free |
-| OpenRouter (free) | 30+ free models | `:free` suffix | 2nd — free |
-| OpenRouter (paid) | 4+ paid models | No `:free` | 3rd — paid |
-| Azure OpenAI | 10+ deployments | `azure-openai` provider | 4th — paid |
+| Google AI (free) | 4 Gemini models | Config + env | 1st - free |
+| OpenRouter (free) | 30+ free models | `:free` suffix | 2nd - free |
+| OpenRouter (paid) | 4+ paid models | No `:free` | 3rd - paid |
+| Azure OpenAI | 10+ deployments | `azure-openai` provider | 4th - paid |
 | OpenAI | Any GPT model | `OPENAI_API_KEY` env | Fallback |
 | Anthropic | Claude models | `ANTHROPIC_API_KEY` env | Fallback |
+| OpenAI-compatible APIs | Any configured model | `*_API_KEY` + `*_MODEL(S)` + optional `*_BASE_URL` | Fallback |
+| Groq, Mistral, DeepSeek, xAI, Perplexity, Together, Fireworks, Cerebras, SambaNova, NVIDIA, Hugging Face | Any configured model | Provider env vars or agent/IDE configs | Fallback |
 
 ### Local Models (auto-detected)
 
 | Runtime | Endpoint | Detection |
 |---------|----------|-----------|
 | **Ollama** | `http://localhost:11434` | Auto-scans, lists all models |
-| **LM Studio** | `http://localhost:1234` | Server running check |
-| **vLLM** | `http://localhost:8000` | Server running check |
+| **LM Studio** | `http://localhost:1234` | Auto-scans `/v1/models` |
+| **vLLM** | `http://localhost:8000` | Auto-scans `/v1/models` |
+| **LocalAI / Jan / llama.cpp / text-generation-webui** | Common local OpenAI-compatible ports | Auto-scans `/v1/models` |
 
 ---
 
@@ -80,7 +83,8 @@ when one fails — automatically rotates to the next working model.
 | `python switcher.py discover` | Scans all configs + env, lists every model found |
 | `python switcher.py status` | Shows active model, health, depletion ETAs |
 | `python switcher.py switch --task coding` | Picks best model for a task (coding/chat/reasoning/general) |
-| `python switcher.py watch` | Background daemon — checks every 2min, auto-rotates |
+| `python switcher.py run opencode -- opencode ...` | Runs a CLI with failure detection, auto-switch, and one retry |
+| `python switcher.py watch` | Background daemon - checks every 2min, auto-rotates |
 
 ### Or use the `ams` command after install:
 
@@ -95,7 +99,7 @@ ams discover    # List all models
 
 ## Task-Aware Model Selection
 
-The switcher doesn't just pick a random model — it picks the **best model for
+The switcher doesn't just pick a random model - it picks the **best model for
 what you're doing**:
 
 | Task | Models preferred | Example scores |
@@ -114,17 +118,18 @@ Auto-detects task from project files (`package.json`, `*.py`, `requirements.txt`
 
 ### 1. Auto-Discovery
 
-Reads your existing CLI configs — no extra setup:
+Reads your existing CLI configs - no extra setup:
 
-- **OpenCode**: `opencode.jsonc` — extracts all `provider` sections
-- **Claude Code**: `CLAUDE.md` — extracts `model:` line
-- **Cursor**: `.cursorrules` / `settings.json`
-- **Windsurf / Aider / Continue.dev**: Based on env configs
-- **Environment**: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`
+- **OpenCode**: `opencode.jsonc` - extracts all `provider` sections
+- **Claude Code**: `CLAUDE.md` - extracts `model:` line
+- **Cursor / VS Code / Windsurf**: workspace and user `settings.json`, `.cursor/mcp.json`, `.vscode/mcp.json`
+- **Continue.dev / Aider / Codex / other agents**: JSON/JSONC/TOML configs with `model`, `models`, `provider`, `baseURL`, or `apiKey`
+- **MCP local configs**: `mcp.json`, `.mcp.json`, `.claude/mcp.json`, `.cursor/mcp.json` and `mcpServers[*].env`
+- **Environment**: known provider keys plus generic `FOO_API_KEY`, `FOO_MODEL(S)`, optional `FOO_BASE_URL`
 
 ### 2. Parallel Health Checking (<5s)
 
-All 48+ models checked simultaneously via connection-pooled session:
+All discovered models checked simultaneously via connection-pooled session:
 
 | Optimization | Impact |
 |-------------|--------|
@@ -144,6 +149,8 @@ strength (+up to 55) + reliability (+15 Azure, -5 free OpenRouter).
 
 - Failed models marked **depleted** with cooldown (respects `Retry-After` header)
 - CLI config updated automatically (`opencode.jsonc` `model` field)
+- Runtime CLI failures are classified for quota/usage/rate-limit errors, then the active model is marked depleted, the next best model is selected, and the command is retried once
+- The switcher learns which models the user has discovered and which ones they use successfully most often; those models get a small preference bonus when healthy
 - After cooldown, model is re-checked and re-enters pool if healthy
 - When ALL models depleted: shows **per-model recovery ETA** sorted fastest-first
 
@@ -173,12 +180,28 @@ Saved to `~/.auto-model-switcher/context.json` for the next model to read.
 | **WMI Watchdog** | Invisible background process, starts/stops with opencode.exe |
 | **Desktop Shortcuts** | One-click status, switch, watch |
 
+### Validated local CLI versions
+
+Tested on June 7, 2026:
+
+| Tool | Version |
+|------|---------|
+| OpenCode | 1.16.0 |
+| Claude Code | 2.1.142 |
+| Gemini CLI | 0.45.1 |
+| Qwen CLI | 0.17.1 |
+| Cursor | 3.5.33 |
+| VS Code | 1.121.0 |
+| Aider | 0.86.2 |
+| Windsurf | 1.110.1 |
+| FFmpeg | 8.1.1 |
+
 ### Adding a new CLI
 
 The auto-switch wrapper system is **future-proof**. To add support for any new
 CLI or agent:
 
-1. Add its path to `install.py` → `clis` dict (around line 119)
+1. Add its path to `install.py` -> `clis` dict (around line 119)
 2. Re-run `python install.py`
 3. Or manually create a `.bat` wrapper in `~/.auto-model-switcher/bin/`
 
@@ -203,26 +226,26 @@ The AI reads `SKILL.md` and handles everything: cloning, installing, configuring
 
 ```
 auto-model-switcher/
-├── switcher.py          # Core engine (1222 lines)
-├── install.py           # Universal installer
-├── restore.ps1          # Windows restore script
-├── SKILL.md             # AI agent instructions
-├── README.md            # This file
-├── LICENSE              # GPL-3.0
-├── NOTICE               # Copyright and legal notices
-├── .gitignore
-├── data/                # Runtime state templates
-├── hooks/               # CLI integration hooks
-└── tests/
-    ├── test_switcher.py # 26 test cases, all passing
-    └── debug_speed.py   # Performance profiler
+|-- switcher.py          # Core engine (2,076 lines)
+|-- install.py           # Universal installer
+|-- restore.ps1          # Windows restore script
+|-- SKILL.md             # AI agent instructions
+|-- README.md            # This file
+|-- LICENSE              # GPL-3.0
+|-- NOTICE               # Copyright and legal notices
+|-- .gitignore
+|-- data/                # Runtime state templates
+|-- hooks/               # CLI integration hooks
+`-- tests/
+    |-- test_switcher.py # 39 test cases, all passing
+    `-- debug_speed.py   # Performance profiler
 ```
 
 ---
 
 ## Copyright & License
 
-**Copyright (c) 2026 Farhan Dhrubo** — All rights reserved.
+**Copyright (c) 2026 Farhan Dhrubo** - All rights reserved.
 
 This project is licensed under the **GNU General Public License v3.0**.
 See [LICENSE](LICENSE) and [NOTICE](NOTICE) for full details.
@@ -244,3 +267,4 @@ works remain open-source and properly attributed.
 
 *Built with Python, caffeine, and the frustration of getting 402 errors
 mid-session.*
+

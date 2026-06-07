@@ -127,17 +127,28 @@ def install_path_wrappers():
     clis = {
         "opencode": r'C:\Users\Farhan\AppData\Local\Programs\@opencode-aidesktop\OpenCode.exe',
         "claude": "claude.exe",
+        "codex": "codex.exe",
+        "gemini": "gemini.exe",
+        "qwen": "qwen.exe",
         "cursor": "cursor.exe",
+        "code": "code.exe",
+        "code-insiders": "code-insiders.exe",
         "aider": "aider.exe",
         "windsurf": "windsurf.exe",
         "continue": "continue.exe",
+        "cline": "cline.exe",
+        "roo": "roo.exe",
+        "goose": "goose.exe",
+        "crush": "crush.exe",
+        "zed": "zed.exe",
+        "trae": "trae.exe",
+        "kiro": "kiro.exe",
     }
 
     for cli_name, cli_path in clis.items():
         bat_content = f'''@echo off
 REM Auto Model Switcher wrapper for {cli_name}
-python "{SWITCHER_DIR / 'switcher.py'}" switch --silent >nul 2>&1
-{cli_path} %*
+python "{SWITCHER_DIR / 'switcher.py'}" run "{cli_name}" -- "{cli_path}" %*
 '''
         bat_file = bat_dir / f"{cli_name}.bat"
         bat_file.write_text(bat_content)
@@ -145,7 +156,13 @@ python "{SWITCHER_DIR / 'switcher.py'}" switch --silent >nul 2>&1
 
     # ps1 version for PowerShell
     ps1_content = f'''# Auto Model Switcher — universal pre-exec hook
-python "{SWITCHER_DIR / 'switcher.py'}" switch --silent
+param(
+    [Parameter(Position=0, Mandatory=$true)]
+    [string]$TargetCli,
+    [Parameter(ValueFromRemainingArguments=$true)]
+    [string[]]$CliArgs = @()
+)
+python "{SWITCHER_DIR / 'switcher.py'}" run "$TargetCli" -- "$TargetCli" @CliArgs
 '''
     ps1_file = bat_dir / "auto-switch-pre.ps1"
     ps1_file.write_text(ps1_content)

@@ -16,8 +16,10 @@ REM Usage: auto-switch.bat claude [args...]
 set SWITCHER=%~dp0switcher.py
 set STATE=%USERPROFILE%\.auto-model-switcher\state.json
 
-REM Quick health check
-python "%SWITCHER%" switch --silent >nul 2>&1
+if "%~1"=="" (
+  echo Usage: auto-switch.bat ^<cli^> [args...]
+  exit /b 2
+)
 
-REM Run the target CLI
-%*
+REM Run through switcher brain: pre-check, detect usage-limit failures, switch, retry once.
+python "%SWITCHER%" run "%~1" -- %*

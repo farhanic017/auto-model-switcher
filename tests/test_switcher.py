@@ -70,6 +70,30 @@ def test_parse_with_comments():
     finally:
         os.unlink(tmp)
 
+
+def test_parse_jsonc_preserves_comment_markers_inside_strings():
+    from switcher import parse_opencode_config
+    cases = [
+        '{"model":"https://example.com/model","provider":{"p":{"models":{"m1":{}}}}}',
+        '{"model":"m/*not-comment*/1","provider":{"p":{"models":{"m1":{}}}}}',
+        '{"model":"m//not-comment","provider":{"p":{"models":{"m1":{}}}}}',
+        """{
+          "model": "m1",
+          /* block comment */
+          "provider": {"p": {"models": {"m1": {}}}}
+        }""",
+    ]
+    for text in cases:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonc", delete=False) as f:
+            f.write(text)
+            tmp = f.name
+        try:
+            cfg = parse_opencode_config(Path(tmp))
+            assert "model" in cfg
+            assert "provider" in cfg
+        finally:
+            os.unlink(tmp)
+
 # ─── State ───────────────────────────────────────────────────────────────────
 
 def test_state_lifecycle():
@@ -116,6 +140,88 @@ def test_recovery_eta():
     save_state(state)
 
 # ─── Model Scoring ───────────────────────────────────────────────────────────
+
+def test_load_state_recovers_from_backup_when_primary_corrupt():
+    from switcher import STATE_FILE, save_state, load_state
+    original = load_state()
+    marker = "test:backup-recovery"
+    try:
+        state = load_state()
+        state["active"]["opencode"] = marker
+        save_state(state)
+        STATE_FILE.with_suffix(STATE_FILE.suffix + ".bak").write_text(
+            json.dumps(state), encoding="utf-8"
+        )
+        STATE_FILE.write_text("{not json", encoding="utf-8")
+        recovered = load_state()
+        assert recovered["active"]["opencode"] == marker
+    finally:
+        save_state(original)
+
+
+def test_health_cache_ignores_corrupt_primary_and_uses_backup():
+    from switcher import CACHE_FILE, _load_health_cache, _save_health_cache
+    CACHE_FILE.unlink(missing_ok=True)
+    CACHE_FILE.with_suffix(CACHE_FILE.suffix + ".bak").unlink(missing_ok=True)
+    try:
+        _save_health_cache({"test:m": (True, "ok")})
+        CACHE_FILE.with_suffix(CACHE_FILE.suffix + ".bak").write_text(
+            CACHE_FILE.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        CACHE_FILE.write_text("{bad", encoding="utf-8")
+        assert _load_health_cache()["test:m"] == (True, "ok")
+    finally:
+        CACHE_FILE.unlink(missing_ok=True)
+        CACHE_FILE.with_suffix(CACHE_FILE.suffix + ".bak").unlink(missing_ok=True)
+
+
+def test_model_knowledge_remembers_discovery_and_usage():
+    from switcher import (remember_discovered_models, record_model_usage,
+                          load_state, save_state)
+    key = "test:knowledge-model"
+    state = load_state()
+    state["knowledge"]["models"].pop(key, None)
+    state["knowledge"]["usage"].pop(key, None)
+    state["knowledge"]["cli_usage"].pop("opencode", None)
+    save_state(state)
+
+    remember_discovered_models([{
+        "key": key, "provider": "test", "model_id": "knowledge-model",
+        "deployment": "knowledge-model", "endpoint": None,
+        "source": "test", "is_free": True,
+    }])
+    record_model_usage(key, cli="opencode", outcome="success", exit_code=0)
+
+    state = load_state()
+    assert key in state["knowledge"]["models"]
+    assert state["knowledge"]["usage"][key]["runs"] == 1
+    assert state["knowledge"]["usage"][key]["successes"] == 1
+    assert state["knowledge"]["cli_usage"]["opencode"][key] == 1
+
+    state["knowledge"]["models"].pop(key, None)
+    state["knowledge"]["usage"].pop(key, None)
+    state["knowledge"]["cli_usage"].pop("opencode", None)
+    save_state(state)
+
+
+def test_model_usage_bonus_prefers_successful_user_models():
+    from switcher import record_model_usage, model_usage_bonus, load_state, save_state
+    key = "test:preferred-model"
+    state = load_state()
+    state["knowledge"]["usage"].pop(key, None)
+    state["knowledge"]["cli_usage"].pop("opencode", None)
+    save_state(state)
+
+    record_model_usage(key, cli="opencode", outcome="success", exit_code=0)
+    record_model_usage(key, cli="opencode", outcome="success", exit_code=0)
+
+    assert model_usage_bonus(key, cli="opencode") > 0
+
+    state = load_state()
+    state["knowledge"]["usage"].pop(key, None)
+    state["knowledge"]["cli_usage"].pop("opencode", None)
+    save_state(state)
+
 
 def test_score_free_beat_paid():
     from switcher import score_model
@@ -185,6 +291,52 @@ def test_check_openrouter_402():
 
 # ─── Free-Tier Gate Detection ────────────────────────────────────────────────
 
+def test_check_openrouter_forced_model_probe_detects_usage_limit():
+    from unittest.mock import MagicMock
+    from switcher import _check_openrouter
+
+    mock_session = MagicMock()
+    auth = MagicMock()
+    auth.status_code = 200
+    auth.json.return_value = {"data": {"credits": 1.0, "limit": 100.0}}
+    completion = MagicMock()
+    completion.status_code = 429
+    completion.headers = {"Retry-After": "120"}
+    mock_session.get.return_value = auth
+    mock_session.post.return_value = completion
+
+    h, m = _check_openrouter({
+        "api_key": "k",
+        "model_id": "m1",
+        "deployment": "m1",
+        "_force_model_probe": True,
+    }, mock_session)
+
+    assert not h
+    assert "rate limited (429)" in m
+    mock_session.post.assert_called_once()
+
+
+def test_check_openai_compatible_forced_model_probe():
+    from unittest.mock import MagicMock
+    from switcher import _check_openai_compatible
+
+    mock_session = MagicMock()
+    mock_session.post.return_value.status_code = 200
+    h, m = _check_openai_compatible({
+        "provider": "acme",
+        "model_id": "acme-model",
+        "deployment": "acme-model",
+        "endpoint": "http://localhost:9999/v1",
+        "api_key": "k",
+        "_force_model_probe": True,
+    }, mock_session)
+
+    assert h is True
+    assert "model responding" in m
+    mock_session.post.assert_called_once()
+
+
 def test_detect_free_tier_gate():
     from switcher import detect_free_tier_gate
     provider = {"is_free": True}
@@ -200,6 +352,111 @@ def test_detect_gate_only_for_free():
 
 # ─── Parallel Checking ───────────────────────────────────────────────────────
 
+def test_detect_usage_limit_error():
+    from switcher import detect_usage_limit_error
+
+    assert detect_usage_limit_error("Error 429: rate limit exceeded")
+    assert detect_usage_limit_error("You have no credits remaining")
+    assert detect_usage_limit_error("monthly spend limit reached")
+    assert detect_usage_limit_error("quota exceeded for this model")
+    assert detect_usage_limit_error("normal syntax error") is None
+
+
+def test_detect_usage_limit_error_provider_message_matrix():
+    from switcher import detect_usage_limit_error
+
+    positive = [
+        "OpenAI: You exceeded your current quota, please check your plan.",
+        "Anthropic API error: rate_limit_error requests per minute exceeded.",
+        "OpenRouter returned 402 payment required.",
+        "Gemini quota exceeded for quota metric GenerateContent request.",
+        "insufficient credits, add funds to continue.",
+        "free tier limit reached for this model.",
+        "monthly spend limit has been reached.",
+    ]
+    negative = [
+        "SyntaxError: invalid syntax",
+        "Cannot find module './missing'",
+        "ECONNREFUSED localhost:3000",
+        "Authentication failed: invalid API key",
+    ]
+    for msg in positive:
+        assert detect_usage_limit_error(msg), msg
+    for msg in negative:
+        assert detect_usage_limit_error(msg) is None, msg
+
+
+def test_metadata_commands_do_not_count_as_model_usage():
+    from switcher import _is_metadata_command
+
+    assert _is_metadata_command(["opencode", "--version"])
+    assert _is_metadata_command(["aider", "--help"])
+    assert _is_metadata_command(["claude", "version"])
+    assert not _is_metadata_command(["opencode", "write some code"])
+
+
+def test_handle_runtime_failure_marks_active_and_switches():
+    from unittest.mock import patch
+    from switcher import handle_runtime_failure
+
+    with patch("switcher.get_active", return_value="openrouter:m1"), \
+         patch("switcher.mark_depleted") as depleted, \
+         patch("switcher.switch", return_value=True) as switched:
+        ok = handle_runtime_failure(
+            "opencode",
+            "provider returned 429 rate limit exceeded",
+            exit_code=1,
+            silent=True,
+        )
+
+    assert ok is True
+    depleted.assert_called_once()
+    assert "runtime usage limit" in depleted.call_args.args[1]
+    switched.assert_called_once_with("opencode", silent=True)
+
+
+def test_handle_runtime_failure_ignores_non_usage_errors():
+    from unittest.mock import patch
+    from switcher import handle_runtime_failure
+
+    with patch("switcher.mark_depleted") as depleted, \
+         patch("switcher.switch") as switched:
+        ok = handle_runtime_failure("opencode", "file not found", exit_code=1)
+
+    assert ok is False
+    depleted.assert_not_called()
+    switched.assert_not_called()
+
+
+def test_validate_state_for_doctor_catches_bad_cooldown():
+    from switcher import _validate_state_for_doctor
+
+    state = {
+        "active": {},
+        "depleted": {"test:m": {"cooldown_until": "not-a-date"}},
+        "history": [],
+        "last_switch": None,
+        "knowledge": {"models": {}, "usage": {}, "cli_usage": {}},
+    }
+    items = _validate_state_for_doctor(state)
+    assert any(i["level"] == "FAIL" and i["name"] == "depleted-state" for i in items)
+
+
+def test_doctor_clean_config_passes(tmp_path, monkeypatch):
+    from switcher import doctor, STATE_FILE, CACHE_FILE, CONTEXT_FILE, MCP_STATE_FILE
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "opencode.jsonc").write_text(json.dumps({
+        "model": "m1",
+        "provider": {"test": {"models": {"m1": {}, "m2": {}}}},
+    }), encoding="utf-8")
+    for path in (STATE_FILE, CACHE_FILE, CONTEXT_FILE, MCP_STATE_FILE):
+        path.unlink(missing_ok=True)
+        path.with_suffix(path.suffix + ".bak").unlink(missing_ok=True)
+
+    assert doctor(run_health=False) is True
+
+
 def test_check_all_parallel():
     from unittest.mock import patch
     from switcher import check_all_parallel
@@ -209,6 +466,29 @@ def test_check_all_parallel():
         results = check_all_parallel(chain)
         assert "a:m1" in results
         assert results["a:m1"][0] is True
+
+
+def test_check_all_parallel_forced_active_does_not_poison_same_key_models():
+    from unittest.mock import patch
+    from switcher import check_all_parallel
+
+    chain = [
+        {"key": "openrouter:m1", "provider": "openrouter", "model_id": "m1",
+         "deployment": "m1", "api_key": "sk-test", "is_free": True},
+        {"key": "openrouter:m2", "provider": "openrouter", "model_id": "m2",
+         "deployment": "m2", "api_key": "sk-test", "is_free": True},
+    ]
+
+    def fake_check(provider, session):
+        if provider.get("_force_model_probe"):
+            return False, "rate limited (429)"
+        return True, "healthy account"
+
+    with patch("switcher._checked_model_with_session", side_effect=fake_check):
+        results = check_all_parallel(chain, force_check_keys={"openrouter:m1"})
+
+    assert results["openrouter:m1"] == (False, "rate limited (429)")
+    assert results["openrouter:m2"] == (True, "healthy account")
 
 
 def test_build_chain():
@@ -230,6 +510,93 @@ def test_discover_from_env():
     del os.environ["OPENAI_API_KEY"]
 
 # ─── MCP State Preservation ───────────────────────────────────────────────────
+
+def test_discover_from_env_catalog_and_custom_provider():
+    from switcher import discover_from_env
+
+    env_updates = {
+        "GROQ_API_KEY": "test-groq",
+        "GROQ_MODELS": "llama-a,llama-b",
+        "ACME_API_KEY": "test-acme",
+        "ACME_MODELS": "acme-model",
+        "ACME_BASE_URL": "http://localhost:9999/v1",
+    }
+    old = {k: os.environ.get(k) for k in env_updates}
+    try:
+        os.environ.update(env_updates)
+        providers = []
+        discover_from_env(providers)
+        keys = {p["key"] for p in providers}
+        assert "groq:llama-a" in keys
+        assert "groq:llama-b" in keys
+        assert "acme:acme-model" in keys
+        acme = next(p for p in providers if p["key"] == "acme:acme-model")
+        assert acme["endpoint"] == "http://localhost:9999/v1"
+    finally:
+        for k, v in old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def test_discover_from_generic_mcp_env_config():
+    from switcher import discover_from_generic_config
+
+    providers = []
+    cfg = {
+        "mcpServers": {
+            "agent": {
+                "command": "agent",
+                "env": {
+                    "OPENROUTER_API_KEY": "sk-test",
+                    "OPENROUTER_MODELS": "openrouter/auto,deepseek/deepseek-chat",
+                },
+            }
+        }
+    }
+    discover_from_generic_config(cfg, providers, "mcp.json")
+    keys = {p["key"] for p in providers}
+    assert "openrouter:openrouter/auto" in keys
+    assert "openrouter:deepseek/deepseek-chat" in keys
+
+
+def test_discover_from_generic_agent_config():
+    from switcher import discover_from_generic_config
+
+    providers = []
+    cfg = {
+        "models": [
+            {
+                "provider": "groq",
+                "model": "llama-agent",
+                "apiKey": "test",
+                "baseURL": "https://api.groq.com/openai/v1",
+            }
+        ]
+    }
+    discover_from_generic_config(cfg, providers, "continue.json")
+    assert any(p["key"] == "groq:llama-agent" for p in providers)
+
+
+def test_generic_config_does_not_duplicate_opencode_provider_map():
+    from switcher import discover_from_opencode_data, discover_from_generic_config
+
+    cfg = {
+        "model": "m1",
+        "provider": {
+            "test": {
+                "models": {"m1": {}, "m2": {}}
+            }
+        }
+    }
+    providers = []
+    discover_from_opencode_data(Path("opencode.jsonc"), cfg, providers)
+    discover_from_generic_config(cfg, providers, "opencode.jsonc")
+    keys = {p["key"] for p in providers}
+    assert keys == {"test:m1", "test:m2"}
+    assert not any(k.startswith("provider:") for k in keys)
+
 
 def test_mcp_tool_call_record():
     from switcher import save_mcp_tool_call, _load_mcp_state, clear_mcp_state
