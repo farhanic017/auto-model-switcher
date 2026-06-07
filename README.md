@@ -21,6 +21,19 @@ verification without a manual restart.
 
 <video src="assets/auto-model-switcher-demo-14s-60fps.mp4" width="100%" autoplay muted loop playsinline preload="auto" controls controlslist="nodownload" disablepictureinpicture></video>
 
+## Versions
+
+| Component | Current version |
+|-----------|-----------------|
+| Auto Model Switcher | v2 |
+| Python runtime | 3.10+ |
+| Demo video | 14 seconds, 60 fps, 1280x720 |
+| Tested CLI matrix | Updated June 7, 2026 |
+| Target platforms | Windows, macOS, Linux |
+
+The full validated CLI version matrix is listed in
+[Always-On Integration](#always-on-integration).
+
 ## Why Developers Star It
 
 - **Fixes the most annoying AI CLI failure:** `429`, `402`, quota exceeded, no credits, token exhausted, free-tier limit.
