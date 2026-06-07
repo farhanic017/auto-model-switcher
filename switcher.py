@@ -20,6 +20,9 @@ When ALL models depleted, shows per-model recovery ETA.
 Usage:
   python switcher.py status              # Show state + per-model ETAs
   python switcher.py switch [--task T]   # Pick best model for T (coding|chat|reasoning|general)
+  python switcher.py run opencode -- opencode ...  # Run CLI with auto-switch retry
+  python switcher.py doctor [--health]   # Diagnose state, config, wrappers, CLIs
+  python switcher.py handle-failure opencode < error.txt  # Mark/switch from CLI error output
   python switcher.py watch               # Background daemon with auto-rotation
   python switcher.py discover            # Scan configs for models
 """
@@ -1947,8 +1950,9 @@ def doctor(run_health: bool = False) -> bool:
                     items.append(_doctor_item("FAIL", "json",
                                               f"{path.name} is corrupt and no backup exists: {e}"))
 
-    wrapper_files = [Path("auto-switch.bat"), Path("auto-switch.ps1"), Path("ams.ps1"),
-                     Path("hooks") / "opencode_hook.ps1"]
+    script_dir = Path(__file__).resolve().parent
+    wrapper_files = [script_dir / "auto-switch.bat", script_dir / "auto-switch.ps1",
+                     script_dir / "ams.ps1", script_dir / "hooks" / "opencode_hook.ps1"]
     for wrapper in wrapper_files:
         if wrapper.exists():
             items.append(_doctor_item("OK", "wrapper", f"{wrapper} exists"))

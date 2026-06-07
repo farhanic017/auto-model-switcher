@@ -1,13 +1,28 @@
-# Auto Model Switcher
+# Auto Model Switcher - AI CLI Fallback for OpenCode, Claude Code, Aider, Cursor
 
-**Never get blocked by "out of credits" again.** Auto-discovers all your AI
-models across providers, monitors their health in parallel (<5s), and seamlessly
-rotates when one runs out - all without you lifting a finger.
+**Never get blocked by "out of credits" again.** Auto Model Switcher is an
+always-on AI model fallback engine for OpenCode, Claude Code, Aider, Cursor,
+Windsurf, Qwen, Gemini CLI, OpenRouter, OpenAI-compatible APIs, and local LLMs.
+It discovers your models, learns which ones you use, detects quota/token/usage
+failures at runtime, switches to the next best healthy model, and retries the
+original command once.
 
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-green)]()
 [![License](https://img.shields.io/badge/license-GPLv3-purple)](LICENSE)
 [![Author](https://img.shields.io/badge/author-Farhan%20Dhrubo-red)](https://github.com/farhanic017)
+
+<video src="assets/auto-model-switcher-demo-14s-60fps.mp4" width="100%" autoplay muted loop playsinline preload="auto" controlslist="nodownload" disablepictureinpicture></video>
+
+## Why Developers Star It
+
+- **Fixes the most annoying AI CLI failure:** `429`, `402`, quota exceeded, no credits, token exhausted, free-tier limit.
+- **Works across agents and IDEs:** OpenCode, Claude Code, Cursor, VS Code, Windsurf, Aider, Gemini CLI, Qwen CLI, Codex-style agents, and MCP configs.
+- **Supports every configured provider:** OpenRouter, OpenAI, Anthropic, Google AI, Azure OpenAI, Groq, Mistral, DeepSeek, xAI, Perplexity, Together, Fireworks, Cerebras, SambaNova, NVIDIA, Hugging Face, local OpenAI-compatible servers, Ollama, LM Studio, vLLM, LocalAI, Jan, llama.cpp, text-generation-webui.
+- **Learns your model habits:** healthy models you use successfully get a small preference boost.
+- **No manual restart:** the wrapper marks the failed model depleted, switches, and retries the original command once.
+
+**Search keywords:** AI model switcher, OpenRouter quota fallback, Claude Code fallback model, OpenCode model switcher, Aider model fallback, Cursor AI model router, local LLM fallback, MCP model discovery, OpenAI-compatible model router, auto switch AI models.
 
 ---
 
@@ -85,7 +100,7 @@ when one fails - automatically rotates to the next working model.
 | `python switcher.py switch --task coding` | Picks best model for a task (coding/chat/reasoning/general) |
 | `python switcher.py run opencode -- opencode ...` | Runs a CLI with failure detection, auto-switch, and one retry |
 | `python switcher.py doctor` | Runs local diagnostics for state, configs, wrappers, and CLIs |
-| `python switcher.py watch` | Background daemon — checks every 2min, auto-rotates |
+| `python switcher.py watch` | Background daemon - checks every 2min, auto-rotates |
 
 ### Or use the `ams` command after install:
 
