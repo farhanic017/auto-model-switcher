@@ -12,7 +12,14 @@ original command once.
 [![License](https://img.shields.io/badge/license-GPLv3-purple)](LICENSE)
 [![Author](https://img.shields.io/badge/author-Farhan%20Dhrubo-red)](https://github.com/farhanic017)
 
-<video src="assets/auto-model-switcher-demo-14s-60fps.mp4" width="100%" autoplay muted loop playsinline preload="auto" controlslist="nodownload" disablepictureinpicture></video>
+## Live Demo
+
+This autoplaying 16:9 preview shows the full model fallback flow: active AI CLI
+session, quota failure detection, depleted-model cooldown, provider routing,
+task-aware scoring, learned usage preferences, config update, retry, and final
+verification without a manual restart.
+
+<video src="assets/auto-model-switcher-demo-14s-60fps.mp4" width="100%" autoplay muted loop playsinline preload="auto" controls controlslist="nodownload" disablepictureinpicture></video>
 
 ## Why Developers Star It
 
