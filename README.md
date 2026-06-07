@@ -21,19 +21,6 @@ verification without a manual restart.
 
 <video src="assets/auto-model-switcher-demo-14s-60fps.mp4" width="100%" autoplay muted loop playsinline preload="auto" controls controlslist="nodownload" disablepictureinpicture></video>
 
-## Versions
-
-| Component | Current version |
-|-----------|-----------------|
-| Auto Model Switcher | v2 |
-| Python runtime | 3.10+ |
-| Demo video | 14 seconds, 60 fps, 1280x720 |
-| Tested CLI matrix | Updated June 7, 2026 |
-| Target platforms | Windows, macOS, Linux |
-
-The full validated CLI version matrix is listed in
-[Always-On Integration](#always-on-integration).
-
 ## Why Developers Star It
 
 - **Fixes the most annoying AI CLI failure:** `429`, `402`, quota exceeded, no credits, token exhausted, free-tier limit.
@@ -216,22 +203,6 @@ Saved to `~/.auto-model-switcher/context.json` for the next model to read.
 | **WMI Watchdog** | Invisible background process, starts/stops with opencode.exe |
 | **Desktop Shortcuts** | One-click status, switch, watch |
 
-### Validated local CLI versions
-
-Tested on June 7, 2026:
-
-| Tool | Version |
-|------|---------|
-| OpenCode | 1.16.0 |
-| Claude Code | 2.1.142 |
-| Gemini CLI | 0.45.1 |
-| Qwen CLI | 0.17.1 |
-| Cursor | 3.5.33 |
-| VS Code | 1.121.0 |
-| Aider | 0.86.2 |
-| Windsurf | 1.110.1 |
-| FFmpeg | 8.1.1 |
-
 ### Adding a new CLI
 
 The auto-switch wrapper system is **future-proof**. To add support for any new
@@ -276,6 +247,40 @@ auto-model-switcher/
     |-- test_switcher.py # 39 test cases, all passing
     `-- debug_speed.py   # Performance profiler
 ```
+
+---
+
+## Versions & Release History
+
+| Version | Date | What shipped |
+|---------|------|--------------|
+| v2 current | June 7, 2026 | Runtime model-switching brain, quota/token/usage failure detection, depleted-model cooldown, learned usage preferences, task-aware scoring, provider fallback, config update, command retry, doctor diagnostics, README SEO refresh, and the 14-second 60 fps demo video. |
+| v2.1 | June 7, 2026 | Parallel health checks, shared HTTP session reuse, model health caching, sub-5-second timeout target, future-proof wrapper scripts, Windows shell integration, copyright headers, and defensive lock/edge-case fixes. |
+| v2 baseline | June 7, 2026 | Core always-on model rotation engine, provider discovery, local model discovery, CLI wrappers, installer, restore script, AI-agent install skill, state template, and test coverage for switching behavior. |
+
+| Component | Current version |
+|-----------|-----------------|
+| Auto Model Switcher engine | v2 current |
+| Python runtime | 3.10+ |
+| Demo video | 14 seconds, 60 fps, 1280x720 |
+| Tested CLI matrix | Updated June 7, 2026 |
+| Target platforms | Windows, macOS, Linux |
+
+### Validated local CLI versions
+
+Tested on June 7, 2026:
+
+| Tool | Version |
+|------|---------|
+| OpenCode | 1.16.0 |
+| Claude Code | 2.1.142 |
+| Gemini CLI | 0.45.1 |
+| Qwen CLI | 0.17.1 |
+| Cursor | 3.5.33 |
+| VS Code | 1.121.0 |
+| Aider | 0.86.2 |
+| Windsurf | 1.110.1 |
+| FFmpeg | 8.1.1 |
 
 ---
 
