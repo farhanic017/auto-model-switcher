@@ -19,7 +19,7 @@ session, quota failure detection, depleted-model cooldown, provider routing,
 task-aware scoring, learned usage preferences, config update, retry, and final
 verification without a manual restart.
 
-<video src="assets/auto-model-switcher-demo-14s-60fps.mp4" width="100%" autoplay muted loop playsinline preload="auto" controls controlslist="nodownload" disablepictureinpicture></video>
+![Auto Model Switcher live demo preview](assets/auto-model-switcher-live-demo.gif)
 
 ## Why Developers Star It
 
@@ -262,7 +262,7 @@ auto-model-switcher/
 |-----------|-----------------|
 | Auto Model Switcher engine | v2 current |
 | Python runtime | 3.10+ |
-| Demo video | 14 seconds, 60 fps, 1280x720 |
+| Demo video | 14 seconds, 60 fps, 1280x720 MP4 plus GitHub-safe animated preview |
 | Tested CLI matrix | Updated June 7, 2026 |
 | Target platforms | Windows, macOS, Linux |
 
