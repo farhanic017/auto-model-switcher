@@ -254,13 +254,13 @@ auto-model-switcher/
 
 | Version | Date | What shipped |
 |---------|------|--------------|
-| v2 current | June 7, 2026 | Runtime model-switching brain, quota/token/usage failure detection, depleted-model cooldown, learned usage preferences, task-aware scoring, provider fallback, config update, command retry, doctor diagnostics, README SEO refresh, and the 14-second 60 fps demo video. |
-| v2.1 | June 7, 2026 | Parallel health checks, shared HTTP session reuse, model health caching, sub-5-second timeout target, future-proof wrapper scripts, Windows shell integration, copyright headers, and defensive lock/edge-case fixes. |
-| v2 baseline | June 7, 2026 | Core always-on model rotation engine, provider discovery, local model discovery, CLI wrappers, installer, restore script, AI-agent install skill, state template, and test coverage for switching behavior. |
+| v3 current | June 7, 2026 | Runtime model-switching brain, quota/token/usage failure detection, depleted-model cooldown, learned usage preferences, task-aware scoring, provider fallback, config update, command retry, doctor diagnostics, README SEO refresh, and the 14-second 60 fps demo video. |
+| v2 | June 6, 2026 | Parallel health checks, shared HTTP session reuse, model health caching, sub-5-second timeout target, future-proof wrapper scripts, Windows shell integration, copyright headers, and defensive lock/edge-case fixes. |
+| v1 baseline | May 20, 2026 | Core always-on model rotation engine, provider discovery, local model discovery, CLI wrappers, installer, restore script, AI-agent install skill, state template, and test coverage for switching behavior. |
 
 | Component | Current version |
 |-----------|-----------------|
-| Auto Model Switcher engine | v2 current |
+| Auto Model Switcher engine | v3 current |
 | Python runtime | 3.10+ |
 | Demo video | 14 seconds, 60 fps, 1280x720 MP4 plus GitHub-safe animated preview |
 | Tested CLI matrix | Updated June 7, 2026 |
